@@ -419,7 +419,7 @@ reg_t cause_csr_t::read() const noexcept {
   // there since at least 2015 (ea58df8 and c4350ef).
   if (proc->get_isa().get_max_xlen() > proc->get_xlen()) // Move interrupt bit to top of xlen
     val | ((val >> (proc->get_isa().get_max_xlen()-1)) << (proc->get_xlen()-1));
-  if ((state->csrmap[CSR_MTVEC]->read() & (reg_t)0x3F) == (reg_t)0x03) {
+  if (proc->CLIC.SMCLIC_active) {
     if (address == CSR_SCAUSE) {
       reg_t sstatus_val = state->csrmap[CSR_SSTATUS]->read();
       val = set_field(val,SCAUSE_SPP,get_field(sstatus_val,SSTATUS_SPP));
@@ -428,6 +428,19 @@ reg_t cause_csr_t::read() const noexcept {
   }
 
   return val;
+}
+
+bool cause_csr_t::unlogged_write(const reg_t val) noexcept {
+  if (proc->CLIC.SMCLIC_active) {
+    if (address == CSR_SCAUSE) {
+      reg_t sstatus_val = state->csrmap[CSR_SSTATUS]->read();
+      sstatus_val = set_field(sstatus_val,SSTATUS_SPP,get_field(val,SCAUSE_SPP));
+      sstatus_val = set_field(sstatus_val,SSTATUS_SPIE,get_field(val,SCAUSE_SPIE));
+      state->csrmap[CSR_SSTATUS]->write(sstatus_val);
+    }
+  }
+
+  return basic_csr_t::unlogged_write(val);
 }
 
 // implement class base_status_csr_t
@@ -751,7 +764,7 @@ mip_or_mie_csr_t::mip_or_mie_csr_t(processor_t* const proc, const reg_t addr):
 }
 
 reg_t mip_or_mie_csr_t::read() const noexcept {
-  if ((state->csrmap[CSR_MTVEC]->read() & (reg_t)0x3F) == (reg_t)0x03) {
+  if (proc->CLIC.SMCLIC_active) {
     if (address == CSR_MIE)
     {
     return 0;
@@ -776,7 +789,7 @@ mip_csr_t::mip_csr_t(processor_t* const proc, const reg_t addr):
 }
 
 reg_t mip_csr_t::read() const noexcept {
-  if ((state->csrmap[CSR_MTVEC]->read() & (reg_t)0x3F) == (reg_t)0x03) {
+  if (proc->CLIC.SMCLIC_active) {
     if (address == CSR_MIP)
     {
     return 0;
@@ -885,7 +898,7 @@ mie_proxy_csr_t::mie_proxy_csr_t(processor_t* const proc, const reg_t addr, gene
 }
 
 reg_t mie_proxy_csr_t::read() const noexcept {
-  if ((state->csrmap[CSR_MTVEC]->read() & (reg_t)0x3F) == (reg_t)0x03) {
+  if (proc->CLIC.SMCLIC_active) {
     if(proc->CLIC.SSCLIC_enabled) {
       if (address == CSR_SIE)
       {
@@ -1968,7 +1981,7 @@ reg_t mcause_csr_t::read() const noexcept {
     val =  val | ((val >> (proc->get_isa().get_max_xlen()-1)) << (proc->get_xlen()-1));
   }
   
-  if ((state->csrmap[CSR_MTVEC]->read() & (reg_t)0x3F) == (reg_t)0x03) {
+  if (proc->CLIC.SMCLIC_active) {
     reg_t mstatus_val = state->mstatus->read();
     val = set_field(val, MCAUSE_MPP, get_field(mstatus_val, MSTATUS_MPP));
     val = set_field(val, MCAUSE_MPIE, get_field(mstatus_val, MSTATUS_MPIE));
@@ -1978,6 +1991,13 @@ reg_t mcause_csr_t::read() const noexcept {
 }
 
 bool mcause_csr_t::unlogged_write(const reg_t val) noexcept {
+  if (proc->CLIC.SMCLIC_active) {
+    reg_t mstatus_val = state->mstatus->read();
+    mstatus_val = set_field(mstatus_val, MSTATUS_MPP, get_field(val, MCAUSE_MPP));
+    mstatus_val = set_field(mstatus_val, MSTATUS_MPIE, get_field(val, MCAUSE_MPIE));
+    state->mstatus->write(mstatus_val);
+  }
+
     return basic_csr_t::unlogged_write(val);
 }
 
