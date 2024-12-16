@@ -434,6 +434,23 @@ reg_t cause_csr_t::read() const noexcept {
   return val;
 }
 
+bool cause_csr_t::unlogged_write(const reg_t val) noexcept {
+  if (proc->CLIC.SMCLIC_active) {
+    if (address == CSR_SCAUSE) {
+      reg_t sstatus_val = state->csrmap[CSR_SSTATUS]->read();
+      sstatus_val = set_field(sstatus_val,SSTATUS_SPP,get_field(val,SCAUSE_SPP));
+      sstatus_val = set_field(sstatus_val,SSTATUS_SPIE,get_field(val,SCAUSE_SPIE));
+      state->csrmap[CSR_SSTATUS]->write(sstatus_val);
+    } else if (address == CSR_UCAUSE) {
+      reg_t ustatus_val = state->csrmap[CSR_USTATUS]->read();
+      ustatus_val = set_field(ustatus_val,USTATUS_UPIE,get_field(val,UCAUSE_UPIE));
+      state->csrmap[CSR_USTATUS]->write(ustatus_val);
+    }
+  }
+
+  return basic_csr_t::unlogged_write(val);
+}
+
 // implement class base_status_csr_t
 base_status_csr_t::base_status_csr_t(processor_t* const proc, const reg_t addr):
   csr_t(proc, addr),
@@ -2062,6 +2079,13 @@ reg_t mcause_csr_t::read() const noexcept {
 }
 
 bool mcause_csr_t::unlogged_write(const reg_t val) noexcept {
+  if (proc->CLIC.SMCLIC_active) {
+    reg_t mstatus_val = state->mstatus->read();
+    mstatus_val = set_field(mstatus_val, MSTATUS_MPP, get_field(val, MCAUSE_MPP));
+    mstatus_val = set_field(mstatus_val, MSTATUS_MPIE, get_field(val, MCAUSE_MPIE));
+    state->mstatus->write(mstatus_val);
+  }
+
     return basic_csr_t::unlogged_write(val);
 }
 
