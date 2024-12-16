@@ -24,6 +24,9 @@
 #define SCLIC_BASE 0x15000000
 #define SCLIC_SIZE 0x04000000
 
+#define UCLIC_BASE 0x11000000
+#define UCLIC_SIZE 0x04000000
+
 #define CLIC_NVBITS 0         // Specifying Support for smclicshv - Selective Interrupt Hardware Vectoring Extension: 0 = not implemented, 1 = implemented
 #define CLIC_NUM_INTERRUPT 64 // 2-4096 that specifies the actual number of maximum interrupt inputs supported in this implementation. MSIP, MTIP are always included.
 #define CLIC_VERSION 0x01     // 8-bit  parameter  specifies  the  implementation  version  of  CLIC.  The  upper  4-bit  specifies the architecture version, and the lower 4-bit specifies the implementation version

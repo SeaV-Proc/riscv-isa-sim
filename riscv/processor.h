@@ -107,6 +107,13 @@ struct state_t
   csr_t_p stvec;
   virtualized_csr_t_p satp;
   csr_t_p scause;
+  csr_t_p sedeleg;
+  csr_t_p sideleg;
+  ustatus_csr_t_p ustatus;
+  csr_t_p uepc;
+  csr_t_p utval;
+  csr_t_p utvec;
+  csr_t_p ucause;
 
   // When taking a trap into HS-mode, we must access the nonvirtualized HS-mode CSRs directly:
   csr_t_p nonvirtual_stvec;
@@ -231,6 +238,38 @@ class opcode_cache_entry_t {
   static const size_t associativity = 4;
   insn_bits_t tag[associativity];
   const insn_desc_t* contents[associativity];
+};
+
+// CSR properties for RISC-V hart
+struct csr_props_t
+{
+  size_t tval_save_ii_bits;
+  size_t tval_zero_on_ebreak;
+  size_t tval_zero_on_addr_misalign;
+  size_t tval_custom_uncanonical;
+
+  size_t cause_rw_mask;
+  size_t jvt_rw_mask;
+  size_t event_rw_mask;
+
+  size_t ie_zero_mask;
+
+  size_t medelegatable_mask;
+  size_t midelegatable_mask;
+  size_t hedelegatable_mask;
+  size_t hidelegatable_mask;
+  size_t sedelegatable_mask;
+  size_t sidelegatable_mask;
+
+  size_t mideleg_vs_mask_ro_one;
+  size_t status_fs_ro_zero;
+  size_t status_vs_ro_zero;
+  size_t status_ext_off_on_misa_clr;
+
+  size_t envcfg_fiom_ro_one;
+  size_t envcfg_stce_ro_one;
+
+  size_t hpm_absent_acc_illegal;
 };
 
 // this class represents one processor in a RISC-V machine.
@@ -359,12 +398,17 @@ public:
 
   void check_if_lpad_required();
 
+  csr_props_t * get_csr_props() { return &csr_props; }
+
 private:
   const isa_parser_t * const isa;
   const cfg_t * const cfg;
 
   simif_t* sim;
   mmu_t* mmu; // main memory is always accessed via the mmu
+
+  csr_props_t csr_props;
+  
   std::unordered_map<std::string, extension_t*> custom_extensions;
   disassembler_t* disassembler;
   state_t state;
@@ -392,7 +436,7 @@ private:
   opcode_cache_entry_t opcode_cache[OPCODE_CACHE_SIZE];
 
   void take_pending_interrupt() {
-    if ((state.mtvec->read() & (reg_t)0x3F) == (reg_t)0x03) {
+    if (CLIC.SMCLIC_active) {
       CLIC.take_clic_interrupt();
     }
     else {

@@ -29,7 +29,7 @@ static void bad_priv_string(const char* priv)
 isa_parser_t::isa_parser_t(const char* str, const char *priv)
 {
   isa_string = strtolower(str);
-  const char* all_subsets = "mafdqcpvhb";
+  const char* all_subsets = "mafdqchpvnb";
 
   if (isa_string.compare(0, 4, "rv32") == 0)
     max_xlen = 32;
@@ -316,6 +316,8 @@ isa_parser_t::isa_parser_t(const char* str, const char *priv)
       extension_table[EXT_SMCLICSHV] = true;
     } else if (ext_str == "ssclic") {
       extension_table[EXT_SSCLIC] = true;
+    } else if (ext_str == "suclic") {
+      extension_table[EXT_SUCLIC] = true;
     } else if (ext_str == "zicfilp") {
       extension_table[EXT_ZICFILP] = true;
     } else if (ext_str == "zicfiss") {
